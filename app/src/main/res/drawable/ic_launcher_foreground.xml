@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 两页并排的文档，象征中英对照 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,28 h20 v52 h-20 z M58,28 h20 v52 h-20 z" />
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M35,38 h10 v3 h-10 z M35,46 h10 v3 h-10 z M35,54 h10 v3 h-10 z" />
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M63,38 h10 v3 h-10 z M63,46 h10 v3 h-10 z M63,54 h10 v3 h-10 z M63,62 h10 v3 h-10 z" />
+</vector>

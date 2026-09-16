@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="md_primary">#28231F</color>
+    <color name="md_on_primary">#FFFFFF</color>
+    <color name="md_surface">#FFFFFF</color>
+    <color name="md_background">#FFF2DB</color>
+    <color name="panel_bg">#FAFCFF</color>
+    <color name="original_card">#EEF3FA</color>
+    <color name="translated_card">#E9F7EF</color>
+    <color name="text_primary">#1B2430</color>
+    <color name="text_secondary">#5A6B7B</color>
+    <color name="divider">#D8E0E8</color>
+    <color name="mode_surface">#EAF3FF</color>
+    <color name="mode_stroke">#B8D5F5</color>
+    <color name="mode_title">#0B4F92</color>
+    <color name="retro_cream">#FFF2DB</color>
+    <color name="retro_ink">#28231F</color>
+    <color name="retro_paper">#FFFDF7</color>
+    <color name="retro_yellow">#FFDA4B</color>
+    <color name="retro_pink">#F5A9BF</color>
+    <color name="retro_blue">#96CAEA</color>
+</resources>

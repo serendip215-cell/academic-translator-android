@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">文献翻译助手</string>
+    <string name="accessibility_service_label">文献翻译助手 · 选中文本自动翻译</string>
+    <string name="accessibility_service_desc">监听你在其他应用中选中文本的动作，自动把选中的英文段落发送给本应用的悬浮窗进行翻译。不会收集密码框内容，所有翻译请求仅发送到你在设置中选择的翻译引擎。</string>
+
+    <string name="overlay_channel_name">翻译悬浮窗</string>
+    <string name="overlay_notification_text">正在提供选中文本对照翻译</string>
+    <string name="process_text_label">翻译（文献助手）</string>
+    <string name="translating_placeholder">翻译中…</string>
+</resources>
