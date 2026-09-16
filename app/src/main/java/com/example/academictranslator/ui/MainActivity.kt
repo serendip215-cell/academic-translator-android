@@ -147,7 +147,8 @@ class MainActivity : AppCompatActivity() {
         val customStyle = EditText(this).apply {
             hint = "输入自定义前置提示词，例如：用面向本科生的清晰中文翻译"
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            minLines = 3
+            minLines = 1
+            maxLines = 6
             gravity = android.view.Gravity.TOP or android.view.Gravity.START
             setText(settings.customTranslationStyle)
         }

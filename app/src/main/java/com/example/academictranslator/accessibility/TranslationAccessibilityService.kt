@@ -48,6 +48,9 @@ class TranslationAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) return
+        // 悬浮窗中的译文 TextView 也可能上报选区变化；忽略本应用事件，
+        // 防止把已经翻译成中文的译文再次当成原文提交。
+        if (event.packageName?.toString() == packageName) return
         if (!settings.autoSelectionEnabled) return
         if (!canDrawOverlays()) {
             Log.w(TAG, "Ignoring selection because overlay permission is absent")

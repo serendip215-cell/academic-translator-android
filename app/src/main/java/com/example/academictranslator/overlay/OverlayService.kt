@@ -197,14 +197,18 @@ class OverlayService : Service() {
         val margin = WINDOW_MARGIN
 
         params.x = if (anchor != null) {
-            (anchor.left - margin).coerceIn(margin, max(margin, metrics.widthPixels - params.width - margin))
+            // 让面板以选区中心水平对齐，避免只贴着选区左边缘而遮挡正文。
+            (anchor.centerX() - params.width / 2).coerceIn(
+                margin, max(margin, metrics.widthPixels - params.width - margin)
+            )
         } else {
             (metrics.widthPixels - params.width) / 2
         }
         params.y = if (anchor != null) {
-            val below = anchor.bottom + margin
-            if (below + h <= metrics.heightPixels - margin) below
-            else (anchor.top - h - margin).coerceAtLeast(margin)
+            // 优先放在选区上方，避免压住用户刚选中的内容；上方不足时再放到下方。
+            val above = anchor.top - h - margin
+            if (above >= margin) above
+            else (anchor.bottom + margin).coerceAtMost(metrics.heightPixels - h - margin)
         } else margin * 2
 
         runCatching { wm.updateViewLayout(b.root, params) }
