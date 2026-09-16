@@ -8,3 +8,8 @@
 /captures/
 .externalNativeBuild/
 .cxx/
+
+# 本地测试截图可能包含设备界面、服务地址或其他隐私信息
+/api-*.png
+/resize-feature-test.png
+/style-feature-test.png
