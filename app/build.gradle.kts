@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -15,8 +17,23 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            val signingProps = Properties()
+            val signingFile = rootProject.file("keystore.properties")
+            if (signingFile.exists()) {
+                signingFile.inputStream().use { signingProps.load(it) }
+            }
+            storeFile = rootProject.file(signingProps.getProperty("storeFile", "AcademicTranslator-release.jks"))
+            storePassword = signingProps.getProperty("storePassword")
+            keyAlias = signingProps.getProperty("keyAlias", "academictranslator")
+            keyPassword = signingProps.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

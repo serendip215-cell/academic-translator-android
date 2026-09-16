@@ -13,3 +13,7 @@
 /api-*.png
 /resize-feature-test.png
 /style-feature-test.png
+
+# Release 签名密钥，仅保存在本机
+*.jks
+keystore.properties
