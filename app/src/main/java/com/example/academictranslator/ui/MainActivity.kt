@@ -3,6 +3,11 @@ package com.example.academictranslator.ui
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.net.Uri
+import android.os.Build
+import android.content.ComponentName
+import android.content.pm.PackageManager
+import android.Manifest
 import android.text.InputType
 import android.view.View
 import android.widget.AdapterView
@@ -34,6 +39,10 @@ class MainActivity : AppCompatActivity() {
         settings = SettingsStore(this)
 
         loadSettingsIntoUi()
+        b.btnPermissionSetup.setOnClickListener { showPermissionGuide() }
+        if (!hasRequiredPermissions()) {
+            b.root.post { showPermissionGuide() }
+        }
 
         b.rgTranslationMode.setOnCheckedChangeListener { _, checkedId ->
             val webMode = checkedId == R.id.rbWebMode
@@ -46,8 +55,52 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        updatePermissionStatus()
         if (Settings.canDrawOverlays(this)) {
             ContextCompat.startForegroundService(this, Intent(this, OverlayService::class.java))
+        }
+    }
+
+    private fun hasRequiredPermissions(): Boolean =
+        Settings.canDrawOverlays(this) && isAccessibilityEnabled() &&
+            (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)
+
+    private fun isAccessibilityEnabled(): Boolean {
+        val expected = ComponentName(this, com.example.academictranslator.accessibility.TranslationAccessibilityService::class.java).flattenToString()
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+        return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+    }
+
+    private fun updatePermissionStatus() {
+        val overlay = if (Settings.canDrawOverlays(this)) "✅ 悬浮窗" else "❌ 悬浮窗"
+        val accessibility = if (isAccessibilityEnabled()) "✅ 无障碍" else "❌ 无障碍"
+        val notification = if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) "✅ 通知" else "❌ 通知"
+        b.tvPermissionStatus.text = "$overlay　$accessibility　$notification"
+        b.btnPermissionSetup.text = if (hasRequiredPermissions()) "权限已完成" else "检查并授权"
+    }
+
+    private fun showPermissionGuide() {
+        val missing = mutableListOf<String>()
+        if (!Settings.canDrawOverlays(this)) missing += "悬浮窗权限"
+        if (!isAccessibilityEnabled()) missing += "无障碍服务（自动读取选中文字）"
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) missing += "通知权限"
+        if (missing.isEmpty()) {
+            AlertDialog.Builder(this).setTitle("权限状态").setMessage("所需权限已经全部开启。").setPositiveButton("确定", null).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("完成首次授权")
+            .setMessage("为了显示翻译悬浮窗和自动读取网页选区，请开启：\n\n${missing.joinToString("\n")}")
+            .setPositiveButton("去授权") { _, _ -> openNextPermission(missing.first()) }
+            .setNegativeButton("稍后", null)
+            .show()
+    }
+
+    private fun openNextPermission(permission: String) {
+        when {
+            permission == "悬浮窗权限" -> startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+            permission == "无障碍服务（自动读取选中文字）" -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            Build.VERSION.SDK_INT >= 33 && permission == "通知权限" -> requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
         }
     }
 
