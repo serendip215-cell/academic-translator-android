@@ -40,6 +40,11 @@ class SettingsStore(context: Context) {
         get() = prefs.getBoolean(KEY_AUTO_SELECTION_ENABLED, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_SELECTION_ENABLED, value).apply()
 
+    /** 首次安装时展示一次系统权限引导，后续仍可在主界面手动补齐。 */
+    var permissionOnboardingShown: Boolean
+        get() = prefs.getBoolean(KEY_PERMISSION_ONBOARDING_V2_SHOWN, false)
+        set(value) = prefs.edit().putBoolean(KEY_PERMISSION_ONBOARDING_V2_SHOWN, value).apply()
+
     /** 悬浮译文面板按屏幕比例保存，以便在不同尺寸设备上恢复合适的大小。 */
     var overlayWidthFraction: Float
         get() = prefs.getFloat(KEY_OVERLAY_WIDTH_FRACTION, 0.92f)
@@ -131,6 +136,7 @@ class SettingsStore(context: Context) {
         private const val KEY_MODEL = "model"
         private const val KEY_EXTRA_GLOSSARY = "extra_glossary"
         private const val KEY_AUTO_SELECTION_ENABLED = "auto_selection_enabled"
+        private const val KEY_PERMISSION_ONBOARDING_V2_SHOWN = "permission_onboarding_v2_shown"
         private const val KEY_OVERLAY_WIDTH_FRACTION = "overlay_width_fraction"
         private const val KEY_OVERLAY_HEIGHT_FRACTION = "overlay_height_fraction"
         private const val KEY_TRANSLATION_STYLE = "translation_style"

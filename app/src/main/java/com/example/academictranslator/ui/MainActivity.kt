@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var settings: SettingsStore
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var updateDialogShown = false
+    private var continueFirstRunAfterNotification = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,11 +51,12 @@ class MainActivity : AppCompatActivity() {
         settings = SettingsStore(this)
 
         loadSettingsIntoUi()
-        b.btnPermissionSetup.setOnClickListener { showPermissionGuide() }
+        b.btnPermissionSetup.setOnClickListener { openMissingPermissionSettings() }
         b.btnCheckUpdate.setOnClickListener { checkForUpdates(manual = true) }
-        if (!hasRequiredPermissions()) {
-            b.root.post { showPermissionGuide() }
-        } else {
+        if (!settings.permissionOnboardingShown) {
+            settings.permissionOnboardingShown = true
+            b.root.post { requestNotificationThenOverlay() }
+        } else if (hasRequiredPermissions()) {
             checkForUpdates(manual = false)
         }
 
@@ -129,36 +131,64 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updatePermissionStatus() {
-        val overlay = if (Settings.canDrawOverlays(this)) "✅ 悬浮窗" else "❌ 悬浮窗"
-        val accessibility = if (isAccessibilityEnabled()) "✅ 无障碍" else "❌ 无障碍"
-        val notification = if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) "✅ 通知" else "❌ 通知"
-        b.tvPermissionStatus.text = "$overlay　$accessibility　$notification"
-        b.btnPermissionSetup.text = if (hasRequiredPermissions()) "权限已完成" else "检查并授权"
-    }
-
-    private fun showPermissionGuide() {
+        val enabled = mutableListOf<String>()
         val missing = mutableListOf<String>()
-        if (!Settings.canDrawOverlays(this)) missing += "悬浮窗权限"
-        if (!isAccessibilityEnabled()) missing += "无障碍服务（自动读取选中文字）"
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) missing += "通知权限"
-        if (missing.isEmpty()) {
-            AlertDialog.Builder(this).setTitle("权限状态").setMessage("所需权限已经全部开启。").setPositiveButton("确定", null).show()
-            return
+        if (Settings.canDrawOverlays(this)) enabled += "悬浮窗" else missing += "悬浮窗"
+        if (isAccessibilityEnabled()) enabled += "无障碍" else missing += "无障碍（网页自动翻译）"
+        if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) enabled += "通知" else missing += "通知"
+        b.tvPermissionTitle.text = if (missing.isEmpty()) "已开启权限" else "权限状态"
+        b.tvPermissionStatus.text = buildString {
+            if (enabled.isNotEmpty()) append("已开启：${enabled.joinToString("、")}")
+            if (missing.isNotEmpty()) {
+                if (isNotEmpty()) append("\n")
+                append("待开启：${missing.joinToString("、")}")
+            }
         }
-        AlertDialog.Builder(this)
-            .setTitle("完成首次授权")
-            .setMessage("为了显示翻译悬浮窗和自动读取网页选区，请开启：\n\n${missing.joinToString("\n")}")
-            .setPositiveButton("去授权") { _, _ -> openNextPermission(missing.first()) }
-            .setNegativeButton("稍后", null)
-            .show()
+        b.btnPermissionSetup.text = if (missing.isEmpty()) "权限已完成" else "前往系统授权"
     }
 
-    private fun openNextPermission(permission: String) {
+    /** 不在应用内重复说明，直接跳转 Android 系统对应的授权界面。 */
+    private fun openMissingPermissionSettings() {
         when {
-            permission == "悬浮窗权限" -> startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
-            permission == "无障碍服务（自动读取选中文字）" -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            Build.VERSION.SDK_INT >= 33 && permission == "通知权限" -> requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED -> {
+                requestNotificationThenOverlay()
+            }
+            !Settings.canDrawOverlays(this) -> openOverlayPermission()
+            !isAccessibilityEnabled() -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
+    }
+
+    private fun requestNotificationThenOverlay() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            continueFirstRunAfterNotification = true
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFICATIONS)
+        } else {
+            openOverlayPermission()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_NOTIFICATIONS && continueFirstRunAfterNotification) {
+            continueFirstRunAfterNotification = false
+            openOverlayPermission()
+        }
+    }
+
+    private fun openOverlayPermission() {
+        if (!Settings.canDrawOverlays(this)) {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")))
+        }
+    }
+
+    companion object {
+        private const val REQUEST_NOTIFICATIONS = 1001
     }
 
     private fun loadSettingsIntoUi() {

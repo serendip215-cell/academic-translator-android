@@ -60,9 +60,10 @@
                 android:orientation="vertical"
                 android:padding="14dp">
                 <TextView
+                    android:id="@+id/tvPermissionTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="首次使用需要的权限"
+                    android:text="权限状态"
                     android:textColor="@color/retro_ink"
                     android:textSize="16sp"
                     android:textStyle="bold" />
