@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.academictranslator"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.0.3"
     }
 
     signingConfigs {
@@ -50,6 +50,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 

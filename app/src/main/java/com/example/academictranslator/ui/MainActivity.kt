@@ -23,14 +23,25 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.academictranslator.R
+import com.example.academictranslator.BuildConfig
+import com.example.academictranslator.data.GithubRelease
+import com.example.academictranslator.data.GithubUpdateChecker
 import com.example.academictranslator.data.SettingsStore
 import com.example.academictranslator.databinding.ActivityMainBinding
 import com.example.academictranslator.overlay.OverlayService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
     private lateinit var settings: SettingsStore
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var updateDialogShown = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,8 +51,11 @@ class MainActivity : AppCompatActivity() {
 
         loadSettingsIntoUi()
         b.btnPermissionSetup.setOnClickListener { showPermissionGuide() }
+        b.btnCheckUpdate.setOnClickListener { checkForUpdates(manual = true) }
         if (!hasRequiredPermissions()) {
             b.root.post { showPermissionGuide() }
+        } else {
+            checkForUpdates(manual = false)
         }
 
         b.rgTranslationMode.setOnCheckedChangeListener { _, checkedId ->
@@ -59,6 +73,49 @@ class MainActivity : AppCompatActivity() {
         if (Settings.canDrawOverlays(this)) {
             ContextCompat.startForegroundService(this, Intent(this, OverlayService::class.java))
         }
+    }
+
+    override fun onDestroy() {
+        activityScope.cancel()
+        super.onDestroy()
+    }
+
+    private fun checkForUpdates(manual: Boolean) {
+        if (updateDialogShown && !manual) return
+        if (manual) b.btnCheckUpdate.text = "正在检查更新…"
+        activityScope.launch {
+            val release = withContext(Dispatchers.IO) {
+                runCatching { GithubUpdateChecker.latestRelease() }.getOrNull()
+            }
+            if (manual) b.btnCheckUpdate.text = "检查更新"
+            if (release == null) {
+                if (manual) showUpdateMessage("暂时无法连接 GitHub，请检查网络后重试。")
+                return@launch
+            }
+            if (GithubUpdateChecker.isNewer(release.version, BuildConfig.VERSION_NAME)) {
+                updateDialogShown = true
+                showUpdateDialog(release)
+            } else if (manual) {
+                showUpdateMessage("当前已是最新版本（v${BuildConfig.VERSION_NAME}）。")
+            }
+        }
+    }
+
+    private fun showUpdateMessage(message: String) {
+        AlertDialog.Builder(this).setTitle("检查更新").setMessage(message).setPositiveButton("确定", null).show()
+    }
+
+    private fun showUpdateDialog(release: GithubRelease) {
+        val downloadUrl = release.apkUrl.ifBlank { release.releaseUrl }
+        val notes = release.notes.ifBlank { "GitHub 发布了新版本。" }
+        AlertDialog.Builder(this)
+            .setTitle("发现新版本 v${release.version}")
+            .setMessage("当前版本：v${BuildConfig.VERSION_NAME}\n\n$notes")
+            .setNegativeButton("稍后", null)
+            .setPositiveButton("立即更新") { _, _ ->
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(downloadUrl)))
+            }
+            .show()
     }
 
     private fun hasRequiredPermissions(): Boolean =
